@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../TradeBlotterApi.Api/TradeBlotterApi.Api.csproj" />
+  <Project Path="../TradeBlotterApi.Domain/TradeBlotterApi.Domain.csproj" />
+  <Project Path="../TradeBlotterApi.Infrastructure/TradeBlotterApi.Infrastructure.csproj" />
+  <Project Path="../TradeBlotterApi.Tests/TradeBlotterApi.Tests.csproj" />
+</Solution>
