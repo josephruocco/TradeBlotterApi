@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+TradeBlotterApi.Api/bin\\Debug/
+**/.vs/
+.git
+.gitignore
+README*

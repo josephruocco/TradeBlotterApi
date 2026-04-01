@@ -5,6 +5,12 @@
 
 # dotenv files
 .env
+.DS_Store
+
+# Generated .NET output
+**/bin/
+**/obj/
+TradeBlotterApi.Api/bin\\Debug/
 
 # User-specific files
 *.rsuser
