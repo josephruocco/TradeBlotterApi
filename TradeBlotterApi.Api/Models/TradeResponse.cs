@@ -12,4 +12,6 @@ public sealed class TradeResponse
     public decimal Price { get; init; }
     public string Counterparty { get; init; } = string.Empty;
     public string Trader { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public DateTime? UpdatedAtUtc { get; init; }
 }

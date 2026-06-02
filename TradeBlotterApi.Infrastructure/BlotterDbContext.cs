@@ -20,6 +20,7 @@ public sealed class BlotterDbContext : DbContext
             e.Property(x => x.Side).HasMaxLength(16).IsRequired();
             e.Property(x => x.Counterparty).HasMaxLength(128).IsRequired();
             e.Property(x => x.Trader).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(16).IsRequired().HasDefaultValue("PENDING");
         });
     }
 }

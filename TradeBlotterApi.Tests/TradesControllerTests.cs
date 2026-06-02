@@ -87,6 +87,120 @@ public sealed class TradesControllerTests
         Assert.Equal("Bob", savedTrade.Trader);
     }
 
+    [Fact]
+    public async Task Update_AmendsTrade()
+    {
+        await using var db = CreateDbContext();
+        var trade = new Trade
+        {
+            Desk = "REPO", Product = "REPO", Symbol = "UST10",
+            Side = "BUY", Quantity = 100m, Price = 99m,
+            Counterparty = "A", Trader = "Joe"
+        };
+        db.Trades.Add(trade);
+        await db.SaveChangesAsync();
+
+        var controller = new TradesController(db);
+
+        var actionResult = await controller.Update(trade.Id, new TradeUpdateRequest
+        {
+            Quantity = 200m,
+            Price = 100.5m
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(actionResult.Result);
+        var response = Assert.IsType<TradeResponse>(ok.Value);
+        Assert.Equal(200m, response.Quantity);
+        Assert.Equal(100.5m, response.Price);
+        Assert.Equal("UST10", response.Symbol);
+        Assert.NotNull(response.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public async Task Update_ReturnsNotFoundForMissingTrade()
+    {
+        await using var db = CreateDbContext();
+        var controller = new TradesController(db);
+
+        var actionResult = await controller.Update(Guid.NewGuid(), new TradeUpdateRequest { Price = 1m });
+
+        Assert.IsType<NotFoundResult>(actionResult.Result);
+    }
+
+    [Fact]
+    public async Task Update_RejectsCancelledTrade()
+    {
+        await using var db = CreateDbContext();
+        var trade = new Trade
+        {
+            Desk = "REPO", Product = "REPO", Symbol = "UST10",
+            Side = "BUY", Quantity = 100m, Price = 99m,
+            Counterparty = "A", Trader = "Joe", Status = "CANCELLED"
+        };
+        db.Trades.Add(trade);
+        await db.SaveChangesAsync();
+
+        var controller = new TradesController(db);
+
+        var actionResult = await controller.Update(trade.Id, new TradeUpdateRequest { Price = 50m });
+
+        Assert.IsType<BadRequestObjectResult>(actionResult.Result);
+    }
+
+    [Fact]
+    public async Task Cancel_SoftDeletesTrade()
+    {
+        await using var db = CreateDbContext();
+        var trade = new Trade
+        {
+            Desk = "REPO", Product = "REPO", Symbol = "UST10",
+            Side = "BUY", Quantity = 100m, Price = 99m,
+            Counterparty = "A", Trader = "Joe"
+        };
+        db.Trades.Add(trade);
+        await db.SaveChangesAsync();
+
+        var controller = new TradesController(db);
+
+        var result = await controller.Cancel(trade.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        var updated = await db.Trades.FindAsync(trade.Id);
+        Assert.Equal("CANCELLED", updated!.Status);
+        Assert.NotNull(updated.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public async Task Cancel_ReturnsNotFoundForMissingTrade()
+    {
+        await using var db = CreateDbContext();
+        var controller = new TradesController(db);
+
+        var result = await controller.Cancel(Guid.NewGuid());
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task Cancel_IsIdempotent()
+    {
+        await using var db = CreateDbContext();
+        var trade = new Trade
+        {
+            Desk = "REPO", Product = "REPO", Symbol = "UST10",
+            Side = "BUY", Quantity = 100m, Price = 99m,
+            Counterparty = "A", Trader = "Joe", Status = "CANCELLED"
+        };
+        db.Trades.Add(trade);
+        await db.SaveChangesAsync();
+
+        var controller = new TradesController(db);
+
+        var result = await controller.Cancel(trade.Id);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
     private static BlotterDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<BlotterDbContext>()

@@ -97,6 +97,48 @@ public sealed class TradesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = trade.Id }, ToResponse(trade));
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<TradeResponse>> Update(Guid id, [FromBody] TradeUpdateRequest request)
+    {
+        var trade = await _db.Trades.FindAsync(id);
+        if (trade is null)
+            return NotFound();
+
+        if (trade.Status == "CANCELLED")
+            return BadRequest("Cannot update a cancelled trade.");
+
+        if (request.Desk is not null) trade.Desk = request.Desk.Trim();
+        if (request.Product is not null) trade.Product = request.Product.Trim();
+        if (request.Symbol is not null) trade.Symbol = request.Symbol.Trim();
+        if (request.Side is not null) trade.Side = request.Side.Trim().ToUpperInvariant();
+        if (request.Quantity is { } qty) trade.Quantity = qty;
+        if (request.Price is { } px) trade.Price = px;
+        if (request.Counterparty is not null) trade.Counterparty = request.Counterparty.Trim();
+        if (request.Trader is not null) trade.Trader = request.Trader.Trim();
+
+        trade.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(ToResponse(trade));
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        var trade = await _db.Trades.FindAsync(id);
+        if (trade is null)
+            return NotFound();
+
+        if (trade.Status == "CANCELLED")
+            return NoContent();
+
+        trade.Status = "CANCELLED";
+        trade.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     private static TradeResponse ToResponse(Trade trade) =>
         new()
         {
@@ -109,7 +151,9 @@ public sealed class TradesController : ControllerBase
             Quantity = trade.Quantity,
             Price = trade.Price,
             Counterparty = trade.Counterparty,
-            Trader = trade.Trader
+            Trader = trade.Trader,
+            Status = trade.Status,
+            UpdatedAtUtc = trade.UpdatedAtUtc
         };
 
     private static string ToContainsPattern(string value)
