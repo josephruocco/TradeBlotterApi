@@ -486,3 +486,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Local interview prep — not for the public repo
+INTERVIEW_WALKTHROUGH.md
